@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+      #player {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="player"></div>
+
+    <script>
+      // query string에서 id 읽기
+      var params = new URLSearchParams(window.location.search);
+      var videoId = params.get("id");
+
+      if (!videoId) {
+        document.body.innerHTML =
+          "<div style='color:white;display:flex;align-items:center;justify-content:center;height:100%'>No video ID</div>";
+      }
+
+      // YouTube IFrame Player API 로드
+      var tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      var firstScriptTag = document.getElementsByTagName("script")[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+      var player;
+
+      function onYouTubeIframeAPIReady() {
+        if (!videoId) return;
+        player = new YT.Player("player", {
+          width: '100%',
+          height: '100%',
+          videoId: videoId,
+          playerVars: {
+            playsinline: 1,
+            rel: 0,
+            origin: window.location.origin
+          },
+          events: {
+            onReady: onPlayerReady,
+            onError: onPlayerError
+          }
+        });
+      }
+
+      function onPlayerReady(event) {
+        try {
+          window.webkit.messageHandlers.youtubeStatus.postMessage({ status: "ready" });
+        } catch (e) {
+          // webkit message handler not available (non-iOS context)
+        }
+      }
+
+      function onPlayerError(event) {
+        // error codes 101, 150 = embed blocked by video owner
+        try {
+          window.webkit.messageHandlers.youtubeError.postMessage({ error: event.data });
+        } catch (e) {
+          // webkit message handler not available
+        }
+      }
+    </script>
+  </body>
+</html>
